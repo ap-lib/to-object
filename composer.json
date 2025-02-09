@@ -1,0 +1,30 @@
+{
+  "name": "ap-lib/to-object",
+  "description": "",
+  "type": "library",
+  "homepage": "https://github.com/ap-lib/to-object",
+  "license": "MIT",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "authors": [
+    {
+      "name": "Anton Panfilov"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "AP\\ToObject\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "AP\\ToObject\\Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "php": "^8.3"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "10.5.*"
+  }
+}
