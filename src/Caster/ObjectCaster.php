@@ -2,12 +2,21 @@
 
 namespace AP\ToObject\Caster;
 
-use AP\ToObject\Error\BaseError;
+use AP\Caster\CasterInterface;
+use AP\Caster\Error\CastError;
+use AP\Context\Context;
 use AP\ToObject\Error\DataErrors;
 use AP\ToObject\ToObject;
+use RuntimeException;
 use Throwable;
 
-class ObjectCaster implements CasterInterface
+/**
+ * Caster for transforming nested objects using the same casting strategy
+ *
+ * - Requires a `Context` instance with a properly set `ToObject`
+ * - Can't function as an independent unit due to its dependency on `Context`
+ */
+readonly class ObjectCaster implements CasterInterface
 {
     const array ALLOWED_FOR_OBJ_HASHMAP = [
         "array"  => true,
@@ -19,31 +28,41 @@ class ObjectCaster implements CasterInterface
     ];
 
     /**
-     * @param string $expected
-     * @param bool $allowsNull
-     * @param mixed $el
-     * @param ToObject $toObject
-     * @return ?array<BaseError> null - skip, [] - el was casted, [errors]  - errors
-     * @throws Throwable fatal errors related with object setup
+     * @param string $expected The expected final type, see: `get_debug_type()`
+     * @param mixed $el Reference to the value being cast
+     * @param ?Context $context The context, which must contain a `ToObject` instance
+     * @return ?array<CastError> `true` if successfully cast, `false` to skip, a non-empty array if casting fails
+     * @throws Throwable If a fatal error occurs during object construction
      */
     public function cast(
         string   $expected,
-        bool     $allowsNull,
         mixed    &$el,
-        ToObject $toObject,
+        ?Context $context = null,
     ): bool|array
     {
-        if (isset(self::ALLOWED_FOR_OBJ_HASHMAP[get_debug_type($el)]) && class_exists($expected)) {
-            try {
-                $el = $toObject->makeObject(
-                    $el,
-                    $expected,
-                );
-                return true;
-            } catch (DataErrors $errors) {
-                return $errors->getErrors();
-            }
+        if (!isset(self::ALLOWED_FOR_OBJ_HASHMAP[get_debug_type($el)])) {
+            return false; // actual value is not scalar
         }
-        return false;
+
+        if (!class_exists($expected)) {
+            return false; // class doesn't exist
+        }
+
+        try {
+            if (is_null($context)) {
+                // This caster requires a ToObject instance within the context, ensure the context is initialized
+                throw new RuntimeException(
+                    "A valid Context with a " . ToObject::class . " instance is required for " .
+                    ObjectCaster::class
+                );
+            }
+            $el = $context->getObject(ToObject::class)->makeObject(
+                $el,
+                $expected,
+            );
+            return true;
+        } catch (DataErrors $errors) {
+            return $errors->getErrors();
+        }
     }
 }

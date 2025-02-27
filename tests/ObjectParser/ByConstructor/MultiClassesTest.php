@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace AP\ToObject\Tests;
+namespace AP\ToObject\Tests\ObjectParser\ByConstructor;
 
-use AP\ToObject\Caster\BaseCaster;
+use AP\Caster\PrimaryCaster;
 use AP\ToObject\Caster\ObjectCaster;
 use AP\ToObject\Error\DataErrors;
 use AP\ToObject\ObjectParser\ByConstructor;
@@ -12,7 +12,6 @@ use AP\ToObject\Tests\Objects\OptionsAOrB;
 use AP\ToObject\ToObject;
 use PHPUnit\Framework\TestCase;
 
-
 final class MultiClassesTest extends TestCase
 {
     public function testNotFound(): void
@@ -21,7 +20,7 @@ final class MultiClassesTest extends TestCase
 
         $toObject = new ToObject(
             new ByConstructor(),
-            new BaseCaster([
+            new PrimaryCaster([
                 new ObjectCaster(),
             ])
         );
@@ -38,7 +37,7 @@ final class MultiClassesTest extends TestCase
     {
         $toObject = new ToObject(
             new ByConstructor(),
-            new BaseCaster([
+            new PrimaryCaster([
                 new ObjectCaster(),
             ])
         );
@@ -59,7 +58,7 @@ final class MultiClassesTest extends TestCase
     {
         $toObject = new ToObject(
             new ByConstructor(),
-            new BaseCaster([
+            new PrimaryCaster([
                 new ObjectCaster(),
             ])
         );

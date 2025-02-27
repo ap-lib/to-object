@@ -2,9 +2,10 @@
 
 namespace AP\ToObject\ObjectParser;
 
+use AP\Caster\Error\UnexpectedType;
+use AP\Context\Context;
 use AP\ToObject\Error\DataErrors;
 use AP\ToObject\Error\MissingRequired;
-use AP\ToObject\Error\UnexpectedType;
 use AP\ToObject\Error\UnexpectedUnionType;
 use AP\ToObject\ToObject;
 use ReflectionClass;
@@ -13,6 +14,13 @@ use ReflectionUnionType;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Parses data and creates an object instance using its constructor
+ *
+ * This class:
+ * - Extracts constructor parameters from given class
+ * - Maps input data to constructor arguments
+ */
 class ByConstructor implements ObjectParserInterface
 {
     public function __construct(
@@ -21,26 +29,40 @@ class ByConstructor implements ObjectParserInterface
     {
     }
 
-//    public static function pathString(array $path, string $name = ""): string
-//    {
-//        return implode(".", BaseError::makePath($path, $name));
-//    }
+    /**
+     * Converts a path array into a string representation for use in critical exceptions
+     * where array-based paths aren't allowed
+     *
+     * @param array $path
+     * @return string
+     */
+    private static function spath(array $path): string
+    {
+        return implode(".", $path);
+    }
 
     /**
+     * Creates an object of the specified class using its constructor
+     *
+     * This method:
+     * - Checks if the target class has a constructor
+     * - Resolves constructor parameters, applying type casting as needed
+     * - Throws `DataErrors` if required parameters are missing or invalid
+     *
      * @template T
-     * @param array|string|int|float|bool|null $data
-     * @param class-string<T> $class
-     * @param string $path
-     * @param ToObject $toObject
-     * @return T
-     * @throws DataErrors data errors
-     * @throws Throwable all other no related with data errors
+     * @param array|string|int|float|bool|null $data The input data to be converted into an object
+     * @param class-string<T> $class The fully qualified class name of the target object
+     * @param ToObject $toObject The ToObject instance handling casting and data types validation
+     * @param array<string> $path The path to the current data segment within a larger structure, used for error tracking
+     * @return T The instantiated and populated object of type `$class`
+     * @throws DataErrors If data-related validation or transformation errors occur
+     * @throws Throwable If an unexpected fatal error occurs
      */
     public function makeObject(
         array|string|int|float|bool|null $data,
         string                           $class,
         ToObject                         $toObject,
-        string                           $path = "",
+        array                            $path = [],
     ): object
     {
         if (!is_array($data)) {
@@ -48,7 +70,7 @@ class ByConstructor implements ObjectParserInterface
                 new UnexpectedType(
                     "array",
                     get_debug_type($data),
-                    "",
+                    [],
                 )
             ]);
         }
@@ -59,56 +81,75 @@ class ByConstructor implements ObjectParserInterface
             throw new RuntimeException("Class `$class` has no constructor.");
         }
 
-        $params = $constructor->getParameters();
+        $params  = $constructor->getParameters();
+        $args    = [];
+        $errors  = [];
+        $context = (new Context())->set($toObject);
 
-        $args = [];
 
-        $errors = [];
         foreach ($params as $param) {
             $name = $param->getName();
             if (!array_key_exists($name, $data)) {
                 if ($param->isDefaultValueAvailable()) {
                     $args[] = $param->getDefaultValue();
-                } elseif ($this->allowed_map_empty_to_null && $param->getType()->allowsNull()) {
+                } elseif (
+                    $this->allowed_map_empty_to_null
+                    && (
+                        $param->getType() instanceof ReflectionNamedType
+                        || $param->getType() instanceof ReflectionUnionType
+                    )
+                    && $param->getType()->allowsNull()
+                ) {
                     $args[] = null;
                 } else {
-                    $errors[] = new MissingRequired("$path/$name");
+                    $errors[] = new MissingRequired(
+                        array_merge($path, [$name])
+                    );
                 }
             } else {
                 $typeRef = $param->getType();
                 if ($typeRef instanceof ReflectionNamedType) {
-                    // one type
+                    // Single type casting
+                    if ($typeRef->allowsNull() && is_null($data[$name])) {
+                        $args[] = $data[$name];
+                        continue;
+                    }
+
                     $castRes = $toObject->caster->cast(
                         $typeRef->getName(),
-                        $typeRef->allowsNull(),
                         $data[$name],
-                        $toObject,
+                        $context,
                     );
                     if ($castRes === true) {
                         $args[] = $data[$name];
                     } elseif (is_array($castRes) && count($castRes)) {
                         foreach ($castRes as $castError) {
-                            $castError->path = "$path/$name$castError->path";
+                            $castError->path = array_merge($path, [$name], $castError->path);
                             $errors[]        = $castError;
                         }
                     } else {
                         $errors[] = new UnexpectedType(
-                            $typeRef->allowsNull() ? [$typeRef->getName(), "null"] : $typeRef->getName(),
+                            $typeRef->getName(),
                             get_debug_type($data[$name]),
-                            ""
+                            []
                         );
                     }
                 } elseif ($typeRef instanceof ReflectionUnionType) {
-                    // union types
+                    // Union type casting
+                    if ($typeRef->allowsNull() && is_null($data[$name])) {
+                        $args[] = $data[$name];
+                        continue;
+                    }
+
                     $casted  = false;
                     $options = [];
+
                     foreach ($typeRef->getTypes() as $typeRefEl) {
                         if ($typeRefEl instanceof ReflectionNamedType) {
                             $castRes = $toObject->caster->cast(
                                 $typeRefEl->getName(),
-                                $typeRefEl->allowsNull(),
                                 $data[$name],
-                                $toObject,
+                                $context,
                             );
                             if ($castRes === true) {
                                 $casted = true;
@@ -116,34 +157,33 @@ class ByConstructor implements ObjectParserInterface
                                 break;
                             } elseif (is_array($castRes) && count($castRes)) {
                                 foreach ($castRes as $castError) {
-                                    $castError->path = "$path/$name$castError->path";
+                                    $castError->path = array_merge($path, [$name], $castError->path);
                                 }
                                 $options[$typeRefEl->getName()] = $castRes;
                             } else {
                                 $options[$typeRefEl->getName()] = new UnexpectedType(
-                                    $typeRef->allowsNull() ? [$typeRefEl->getName(), "null"] : $typeRefEl->getName(),
+                                    $typeRefEl->getName(),
                                     get_debug_type($data[$name]),
-                                    ""
                                 );
                             }
                         } else {
                             throw new RuntimeException(
-                                "$path/$name: unsupportable param type"
+                                self::spath(array_merge($path, [$name])) . ": unsupportable parameter type"
                             );
                         }
                     }
                     if (!$casted) {
                         $errors[] = new UnexpectedUnionType(
                             $options,
-                            "$path/$name",
+                            array_merge($path, [$name]),
                         );
                     }
                 } elseif (is_null($typeRef)) {
-                    // allowed mixed param type
+                    // Mixed type, no type declaration
                     $args[] = $data[$name];
                 } else {
                     throw new RuntimeException(
-                        "$path/$name: unsupportable param type"
+                        self::spath(array_merge($path, [$name])) . ": unsupportable parameter type"
                     );
                 }
             }
