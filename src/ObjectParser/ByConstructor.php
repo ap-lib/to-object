@@ -188,7 +188,7 @@ class ByConstructor implements ObjectParserInterface
                 }
             }
         }
-        if (count($errors)) {
+        if (!empty($errors)) {
             throw new DataErrors($errors);
         }
 
