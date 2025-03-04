@@ -3,9 +3,9 @@
 namespace AP\ToObject\Caster;
 
 use AP\Caster\CasterInterface;
-use AP\Caster\Error\CastError;
 use AP\Context\Context;
-use AP\ToObject\Error\DataErrors;
+use AP\ErrorNode\Error;
+use AP\ErrorNode\ThrowableErrors;
 use AP\ToObject\ToObject;
 use RuntimeException;
 use Throwable;
@@ -31,7 +31,7 @@ readonly class ObjectCaster implements CasterInterface
      * @param string $expected The expected final type, see: `get_debug_type()`
      * @param mixed $el Reference to the value being cast
      * @param ?Context $context The context, which must contain a `ToObject` instance
-     * @return ?array<CastError> `true` if successfully cast, `false` to skip, a non-empty array if casting fails
+     * @return ?array<Error> `true` if successfully cast, `false` to skip, a non-empty array if casting fails
      * @throws Throwable If a fatal error occurs during object construction
      */
     public function cast(
@@ -61,7 +61,7 @@ readonly class ObjectCaster implements CasterInterface
                 $expected,
             );
             return true;
-        } catch (DataErrors $errors) {
+        } catch (ThrowableErrors $errors) {
             return $errors->getErrors();
         }
     }

@@ -4,7 +4,7 @@ namespace AP\ToObject\ObjectParser;
 
 use AP\Caster\Error\UnexpectedType;
 use AP\Context\Context;
-use AP\ToObject\Error\DataErrors;
+use AP\ErrorNode\ThrowableErrors;
 use AP\ToObject\Error\MissingRequired;
 use AP\ToObject\Error\UnexpectedUnionType;
 use AP\ToObject\ToObject;
@@ -47,7 +47,7 @@ class ByConstructor implements ObjectParserInterface
      * This method:
      * - Checks if the target class has a constructor
      * - Resolves constructor parameters, applying type casting as needed
-     * - Throws `DataErrors` if required parameters are missing or invalid
+     * - Throws `AP\ErrorNode\ThrowableErrors` if required parameters are missing or invalid
      *
      * @template T
      * @param array|string|int|float|bool|null $data The input data to be converted into an object
@@ -55,7 +55,7 @@ class ByConstructor implements ObjectParserInterface
      * @param ToObject $toObject The ToObject instance handling casting and data types validation
      * @param array<string> $path The path to the current data segment within a larger structure, used for error tracking
      * @return T The instantiated and populated object of type `$class`
-     * @throws DataErrors If data-related validation or transformation errors occur
+     * @throws ThrowableErrors If data-related validation or transformation errors occur
      * @throws Throwable If an unexpected fatal error occurs
      */
     public function makeObject(
@@ -66,7 +66,7 @@ class ByConstructor implements ObjectParserInterface
     ): object
     {
         if (!is_array($data)) {
-            throw new DataErrors([
+            throw new ThrowableErrors([
                 new UnexpectedType(
                     "array",
                     get_debug_type($data),
@@ -189,7 +189,7 @@ class ByConstructor implements ObjectParserInterface
             }
         }
         if (!empty($errors)) {
-            throw new DataErrors($errors);
+            throw new ThrowableErrors($errors);
         }
 
         return $reflection->newInstanceArgs($args);

@@ -2,7 +2,7 @@
 
 namespace AP\ToObject\ObjectParser;
 
-use AP\ToObject\Error\DataErrors;
+use AP\ErrorNode\ThrowableErrors;
 use AP\ToObject\ToObject;
 use Throwable;
 
@@ -20,7 +20,7 @@ interface ObjectParserInterface
      * @param ToObject $toObject The ToObject instance handling casting and data types validation
      * @param array<string> $path The path to the current data segment within a larger structure, used for error tracking
      * @return T The instantiated and populated object of type `$class`
-     * @throws DataErrors If data-related validation or transformation errors occur
+     * @throws ThrowableErrors If data-related validation or transformation errors occur
      * @throws Throwable If an unexpected fatal error occurs
      */
     public function makeObject(

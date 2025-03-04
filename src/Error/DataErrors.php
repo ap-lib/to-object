@@ -2,7 +2,6 @@
 
 namespace AP\ToObject\Error;
 
-use AP\Caster\Error\CastError;
 use Error;
 use RuntimeException;
 
@@ -11,22 +10,22 @@ use RuntimeException;
  *
  * This exception:
  * - Extends the base `Error` class
- * - Stores a collection of `CastError` instances
- * - Ensures all provided errors are instances of `CastError`
+ * - Stores a collection of `AP\ErrorNode\Error` instances
+ * - Ensures all provided errors are instances of `AP\ErrorNode\Error`
  */
 class DataErrors extends Error
 {
     protected array $errors;
 
     /**
-     * @param array<CastError> $errors The list of casting errors encountered
-     * @throws RuntimeException If any provided error isn't an instance of `CastError`
+     * @param array<\AP\ErrorNode\Error> $errors The list of casting errors encountered
+     * @throws RuntimeException If any provided error isn't an instance of `AP\ErrorNode\Error`
      */
     public function __construct(array $errors)
     {
         foreach ($errors as $error) {
-            if (!($error instanceof CastError)) {
-                throw new RuntimeException("All cast errors must extend " . CastError::class);
+            if (!($error instanceof \AP\ErrorNode\Error)) {
+                throw new RuntimeException("All cast errors must extend " . \AP\ErrorNode\Error::class);
             }
             $this->errors[] = $error;
         }
@@ -36,7 +35,7 @@ class DataErrors extends Error
     /**
      * Retrieves the list of casting errors
      *
-     * @return array<CastError>
+     * @return array<\AP\ErrorNode\Error>
      */
     public function getErrors(): array
     {

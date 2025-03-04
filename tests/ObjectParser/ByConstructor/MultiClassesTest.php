@@ -3,8 +3,8 @@
 namespace AP\ToObject\Tests\ObjectParser\ByConstructor;
 
 use AP\Caster\PrimaryCaster;
+use AP\ErrorNode\ThrowableErrors;
 use AP\ToObject\Caster\ObjectCaster;
-use AP\ToObject\Error\DataErrors;
 use AP\ToObject\ObjectParser\ByConstructor;
 use AP\ToObject\Tests\Objects\A;
 use AP\ToObject\Tests\Objects\B;
@@ -16,7 +16,7 @@ final class MultiClassesTest extends TestCase
 {
     public function testNotFound(): void
     {
-        $this->expectException(DataErrors::class);
+        $this->expectException(ThrowableErrors::class);
 
         $toObject = new ToObject(
             new ByConstructor(),

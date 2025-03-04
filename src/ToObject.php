@@ -3,7 +3,7 @@
 namespace AP\ToObject;
 
 use AP\Caster\PrimaryCaster;
-use AP\ToObject\Error\DataErrors;
+use AP\ErrorNode\ThrowableErrors;
 use AP\ToObject\ObjectParser\ObjectParserInterface;
 use Throwable;
 
@@ -35,7 +35,7 @@ readonly class ToObject
      * @param class-string<T> $class The fully qualified class name of the target object
      * @param array<string> $path The path to the current data segment within a larger structure, used for error tracking
      * @return T The instantiated and populated object of type `$class`
-     * @throws DataErrors If data-related validation or transformation errors occur
+     * @throws ThrowableErrors If data-related validation or transformation errors occur
      * @throws Throwable If an unexpected fatal error occurs
      */
     public function makeObject(
