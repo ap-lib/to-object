@@ -23,12 +23,6 @@ use Throwable;
  */
 class PublicParams implements ObjectParserInterface
 {
-    public function __construct(
-        protected bool $allowed_empty = true
-    )
-    {
-    }
-
     /**
      * Converts a path array into a string representation for use in critical exceptions
      * where array-based paths aren't allowed
