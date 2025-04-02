@@ -84,7 +84,7 @@ class PublicParams implements ObjectParserInterface
         foreach ($params as $param) {
             $name = $param->getName();
             if (!array_key_exists($name, $data)) {
-                if (!$param->isInitialized()) {
+                if (!$param->isInitialized($obj)) {
                     $param_allow_empty_attr = $param->getAttributes(AllowEmpty::class);
                     if (empty($param_allow_empty_attr)) {
                         if (is_null($default_allow_empty)) {
