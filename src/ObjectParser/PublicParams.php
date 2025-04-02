@@ -84,23 +84,25 @@ class PublicParams implements ObjectParserInterface
         foreach ($params as $param) {
             $name = $param->getName();
             if (!array_key_exists($name, $data)) {
-                $param_allow_empty_attr = $param->getAttributes(AllowEmpty::class);
-                if (empty($param_allow_empty_attr)) {
-                    if (is_null($default_allow_empty)) {
-                        $class_allow_empty_attr = $reflection->getAttributes(AllowEmpty::class);
-                        $default_allow_empty    = empty($class_allow_empty_attr)
-                            ? false
-                            : $class_allow_empty_attr[0]->newInstance()->allowed_empty;
+                if (!$param->isInitialized()) {
+                    $param_allow_empty_attr = $param->getAttributes(AllowEmpty::class);
+                    if (empty($param_allow_empty_attr)) {
+                        if (is_null($default_allow_empty)) {
+                            $class_allow_empty_attr = $reflection->getAttributes(AllowEmpty::class);
+                            $default_allow_empty    = empty($class_allow_empty_attr)
+                                ? false
+                                : $class_allow_empty_attr[0]->newInstance()->allowed_empty;
+                        }
+                        $allowed_empty = $default_allow_empty;
+                    } else {
+                        $allowed_empty = $param_allow_empty_attr[0]->newInstance()->allowed_empty;
                     }
-                    $allowed_empty = $default_allow_empty;
-                } else {
-                    $allowed_empty = $param_allow_empty_attr[0]->newInstance()->allowed_empty;
-                }
 
-                if (!$allowed_empty) {
-                    $errors[] = new MissingRequired(
-                        array_merge($path, [$name])
-                    );
+                    if (!$allowed_empty) {
+                        $errors[] = new MissingRequired(
+                            array_merge($path, [$name])
+                        );
+                    }
                 }
             } else {
                 $typeRef = $param->getType();
@@ -148,7 +150,7 @@ class PublicParams implements ObjectParserInterface
                                 $context,
                             );
                             if ($castRes === true) {
-                                $casted = true;
+                                $casted     = true;
                                 $obj->$name = $data[$name];
                                 break;
                             } elseif (is_array($castRes) && count($castRes)) {
